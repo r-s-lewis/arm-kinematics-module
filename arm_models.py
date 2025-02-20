@@ -633,7 +633,35 @@ class FiveDOFRobot:
         ########################################
         self.calc_forward_kinematics(self.theta, radians=True)
 
-    
+    def compute_Jacobian(self):
+        sigma1 = (self.l3 * np.cos(self.theta[1] + self.theta[2]) + 
+                  self.l2 * np.cos(self.theta[1]) + 
+                  self.l4 * np.cos(self.theta[1] + self.theta[2] + self.theta[3]) + 
+                  self.l5 * np.sin(self.theta[1] + self.theta[2] + self.theta[3]))
+
+        sigma2 = (self.l3 * np.sin(self.theta[1] + self.theta[2]) + 
+                  self.l2 * np.sin(self.theta[1]) - 
+                  self.l5 * np.cos(self.theta[1] + self.theta[2] + self.theta[3]) + 
+                  self.l4 * np.sin(self.theta[1] + self.theta[2] + self.theta[3]))
+
+        sigma3 = (self.l3 * np.sin(self.theta[1] + self.theta[2]) - 
+                  self.l5 * np.cos(self.theta[1] + self.theta[2] + self.theta[3]) + 
+                  self.l4 * np.sin(self.theta[1] + self.theta[2] + self.theta[3]))
+
+        sigma4 = self.l5 * np.sin(self.theta[1] + self.theta[2] + self.theta[3])
+        sigma5 = self.l4 * np.cos(self.theta[1] + self.theta[2] + self.theta[3])
+        sigma6 = self.l4 * np.sin(self.theta[1] + self.theta[2] + self.theta[3])
+        sigma7 = self.l5 * np.cos(self.theta[1] + self.theta[2] + self.theta[3])
+
+        J_v = np.array([
+            [-np.sin(self.theta[0]) * sigma1, -np.cos(self.theta[0]) * sigma2, -np.cos(self.theta[0]) * sigma3, np.cos(self.theta[0]) * (sigma7 - sigma6), 0],
+            [ np.cos(self.theta[0]) * sigma1, -np.sin(self.theta[0]) * sigma2, -np.sin(self.theta[0]) * sigma3, np.sin(self.theta[0]) * (sigma7 - sigma6), 0],
+            [ 0,                             sigma1,                         self.l3 * np.cos(self.theta[1] + self.theta[2]) + sigma5 + sigma4, sigma5 + sigma4, 0]
+        ])
+
+        return J_v
+
+
     def calc_velocity_kinematics(self, vel: list):
         """
         Calculate the joint velocities required to achieve the given end-effector velocity.
@@ -642,8 +670,10 @@ class FiveDOFRobot:
             vel: Desired end-effector velocity (3x1 vector).
         """
 
-        J_v = np.zeros((3, self.num_dof))
-        J_w = np.zeros((3, self.num_dof))
+        # J_v = np.zeros((3, self.num_dof))
+        J_v = compute_Jacobian(self)
+        print(J_v)
+        # J_w = np.zeros((3, self.num_dof))
         
         # Recompute robot points based on updated joint angles
         self.calc_forward_kinematics(self.theta, radians=True)
