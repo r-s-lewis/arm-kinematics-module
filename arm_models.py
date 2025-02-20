@@ -289,7 +289,6 @@ class TwoDOFRobot():
             tol (float, optional): The tolerance for the solution. Defaults to 0.01.
             ilimit (int, optional): The maximum number of iterations. Defaults to 50.
         """
-        
         x, y = EE.x, EE.y
         
         ########################################
@@ -546,11 +545,20 @@ class FiveDOFRobot:
         self.DH = np.zeros((5, 4))
         self.T = np.zeros((self.num_dof, 4, 4))
         
-        ########################################
+        # Initialize DH parameters [theta, alpha, a, d]
+        self.DH = np.array([
+            [self.theta[0], np.pi/2, 0, self.l1],
+            [self.theta[1], 0, self.l2, 0],
+            [self.theta[2], 0, self.l3, 0],
+            [self.theta[3], np.pi/2, self.l4, 0],
+            [self.theta[4], 0, 0, self.l5]
+        ])
 
-        # insert your additional code here
-
-        ########################################
+        # Initialize transformation matrices to identity
+        self.T = np.array([np.eye(4) for _ in range(self.num_dof)])
+        
+        # Calculate initial robot configuration
+        self.calc_robot_points()
 
     
     def calc_forward_kinematics(self, theta: list, radians=False):
@@ -561,13 +569,42 @@ class FiveDOFRobot:
             theta: List of joint angles (in degrees or radians).
             radians: Boolean flag to indicate if input angles are in radians.
         """
-        ########################################
+        # Convert angles to radians if needed
+        if not radians:
+            self.theta = [np.deg2rad(t) for t in theta]
+        else:
+            self.theta = theta
 
-        # insert your code here
+        # Enforce joint limits
+        for i in range(len(self.theta)):
+            self.theta[i] = max(self.theta_limits[i][0], min(self.theta_limits[i][1], self.theta[i]))
 
-        ########################################
-        
-        # Calculate robot points (positions of joints)
+        # Calculate transformation matrices for each joint
+
+        self.DH = np.array([
+            [self.theta[0], np.pi/2, 0, self.l1],
+            [self.theta[1], 0, self.l2, 0],
+            [self.theta[2], 0, self.l3, 0],
+            [self.theta[3], np.pi/2, self.l4, 0],
+            [self.theta[4], 0, 0, self.l5]
+        ])
+
+        for i in range(self.num_dof):
+            ct = np.cos(self.DH[i,0])
+            st = np.sin(self.DH[i,0])
+            ca = np.cos(self.DH[i,1])
+            sa = np.sin(self.DH[i,1])
+            r = self.DH[i,2]
+            d = self.DH[i,3]
+
+
+            self.T[i] = np.array([
+                [ct, -st*ca, st*sa, r*ct],
+                [st, ct*ca, -ct*sa, r*st],
+                [0, sa, ca, d],
+                [0, 0, 0, 1]
+            ])
+
         self.calc_robot_points()
 
 
@@ -604,14 +641,47 @@ class FiveDOFRobot:
         Args:
             vel: Desired end-effector velocity (3x1 vector).
         """
-        ########################################
 
-        # insert your code here
-
-        ########################################
-
+        J_v = np.zeros((3, self.num_dof))
+        J_w = np.zeros((3, self.num_dof))
+        
         # Recompute robot points based on updated joint angles
         self.calc_forward_kinematics(self.theta, radians=True)
+
+        # Get end effector position
+        p_e = self.points[-1][:3]
+        
+        # Calculate Jacobian for each joint
+        for i in range(self.num_dof):
+            # Get joint axis of rotation (z-axis of transformation up to joint i)
+            T_i = np.eye(4)
+            for j in range(i):
+                T_i = T_i @ self.T[j]
+            z_i = T_i[:3, 2]  # z-axis of current frame
+            p_i = T_i[:3, 3]  # origin of current frame
+            
+            # Calculate linear velocity component
+            J_v[:, i] = np.cross(z_i, p_e - p_i)
+            
+            # Calculate angular velocity component
+            J_w[:, i] = z_i
+
+        # Combine linear and angular Jacobians
+        J = np.vstack((J_v, J_w))
+        
+        # Calculate joint velocities using pseudoinverse
+        theta_dot = np.linalg.pinv(J) @ np.array(vel)
+        
+        # Update joint angles using small time step
+        dt = 0.1
+        self.theta = [t + dt * td for t, td in zip(self.theta, theta_dot)]
+        
+        # Enforce joint limits
+        for i in range(len(self.theta)):
+            self.theta[i] = max(self.theta_limits[i][0], min(self.theta_limits[i][1], self.theta[i]))
+        
+        # Recalculate robot points with new angles
+        self.calc_robot_points()
 
 
     def calc_robot_points(self):
