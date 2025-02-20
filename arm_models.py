@@ -674,22 +674,28 @@ class FiveDOFRobot:
 
         # Calculate pseudoinverse of Jacobian
         J_inv = np.linalg.pinv(J_v)
+        # print(J_inv)
+        # print(np.det(J_inv))
         
         # Convert velocity to numpy array
         vel = np.array(vel)
+        # print(vel)
         
         # Calculate joint velocities using pseudoinverse
         q_dot = J_inv @ vel
+        # print(q_dot)
         
         # Update joint angles using small time step
         dt = 0.01
         self.theta = [self.theta[i] + q_dot[i] * dt for i in range(self.num_dof)]
+        # print(self.theta)
         
         # Enforce joint limits
-        for i in range(len(self.theta)):
-            self.theta[i] = max(self.theta_limits[i][0], min(self.theta_limits[i][1], self.theta[i]))
+        # for i in range(len(self.theta)):
+        #     self.theta[i] = max(self.theta_limits[i][0], min(self.theta_limits[i][1], self.theta[i]))
         
         # Recalculate robot points with new angles
+        self.calc_forward_kinematics(self.theta, radians=True)
         self.calc_robot_points()
 
 
