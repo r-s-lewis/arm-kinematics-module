@@ -669,42 +669,21 @@ class FiveDOFRobot:
         Args:
             vel: Desired end-effector velocity (3x1 vector).
         """
+        # Use compute_Jacobian to calculate the Jacobian matrix
+        J_v = self.compute_Jacobian()
 
-        # J_v = np.zeros((3, self.num_dof))
-        J_v = compute_Jacobian(self)
-        print(J_v)
-        # J_w = np.zeros((3, self.num_dof))
+        # Calculate pseudoinverse of Jacobian
+        J_inv = np.linalg.pinv(J_v)
         
-        # Recompute robot points based on updated joint angles
-        self.calc_forward_kinematics(self.theta, radians=True)
-
-        # Get end effector position
-        p_e = self.points[-1][:3]
-        
-        # Calculate Jacobian for each joint
-        for i in range(self.num_dof):
-            # Get joint axis of rotation (z-axis of transformation up to joint i)
-            T_i = np.eye(4)
-            for j in range(i):
-                T_i = T_i @ self.T[j]
-            z_i = T_i[:3, 2]  # z-axis of current frame
-            p_i = T_i[:3, 3]  # origin of current frame
-            
-            # Calculate linear velocity component
-            J_v[:, i] = np.cross(z_i, p_e - p_i)
-            
-            # Calculate angular velocity component
-            J_w[:, i] = z_i
-
-        # Combine linear and angular Jacobians
-        J = np.vstack((J_v, J_w))
+        # Convert velocity to numpy array
+        vel = np.array(vel)
         
         # Calculate joint velocities using pseudoinverse
-        theta_dot = np.linalg.pinv(J) @ np.array(vel)
+        q_dot = J_inv @ vel
         
         # Update joint angles using small time step
-        dt = 0.1
-        self.theta = [t + dt * td for t, td in zip(self.theta, theta_dot)]
+        dt = 0.01
+        self.theta = [self.theta[i] + q_dot[i] * dt for i in range(self.num_dof)]
         
         # Enforce joint limits
         for i in range(len(self.theta)):
