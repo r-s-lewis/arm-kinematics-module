@@ -691,8 +691,8 @@ class FiveDOFRobot:
         # print(self.theta)
         
         # Enforce joint limits
-        # for i in range(len(self.theta)):
-        #     self.theta[i] = max(self.theta_limits[i][0], min(self.theta_limits[i][1], self.theta[i]))
+        for i in range(len(self.theta)):
+            self.theta[i] = max(self.theta_limits[i][0], min(self.theta_limits[i][1], self.theta[i]))
         
         # Recalculate robot points with new angles
         self.calc_forward_kinematics(self.theta, radians=True)
