@@ -549,7 +549,7 @@ class FiveDOFRobot:
         self.DH = np.array([
             [self.theta[0], np.pi/2, 0, self.l1],
             [self.theta[1], 0, self.l2, 0],
-            [self.theta[2], 0, self.l3, 0],
+            [-self.theta[2], 0, self.l3, 0],
             [self.theta[3], np.pi/2, self.l4, 0],
             [self.theta[4], 0, 0, self.l5]
         ])
@@ -584,7 +584,7 @@ class FiveDOFRobot:
         self.DH = np.array([
             [self.theta[0], np.pi/2, 0, self.l1],
             [self.theta[1], 0, self.l2, 0],
-            [self.theta[2], 0, self.l3, 0],
+            [-self.theta[2], 0, self.l3, 0],
             [self.theta[3], np.pi/2, self.l4, 0],
             [self.theta[4], 0, 0, self.l5]
         ])
@@ -634,29 +634,29 @@ class FiveDOFRobot:
         self.calc_forward_kinematics(self.theta, radians=True)
 
     def compute_Jacobian(self):
-        sigma1 = (self.l3 * np.cos(self.theta[1] + self.theta[2]) + 
+        sigma1 = (self.l3 * np.cos(self.theta[1] - self.theta[2]) + 
                   self.l2 * np.cos(self.theta[1]) + 
-                  self.l4 * np.cos(self.theta[1] + self.theta[2] + self.theta[3]) + 
-                  self.l5 * np.sin(self.theta[1] + self.theta[2] + self.theta[3]))
+                  self.l4 * np.cos(self.theta[1] - self.theta[2] + self.theta[3]) + 
+                  self.l5 * np.sin(self.theta[1] - self.theta[2] + self.theta[3]))
 
-        sigma2 = (self.l3 * np.sin(self.theta[1] + self.theta[2]) + 
+        sigma2 = (self.l3 * np.sin(self.theta[1] - self.theta[2]) + 
                   self.l2 * np.sin(self.theta[1]) - 
-                  self.l5 * np.cos(self.theta[1] + self.theta[2] + self.theta[3]) + 
-                  self.l4 * np.sin(self.theta[1] + self.theta[2] + self.theta[3]))
+                  self.l5 * np.cos(self.theta[1] - self.theta[2] + self.theta[3]) + 
+                  self.l4 * np.sin(self.theta[1] - self.theta[2] + self.theta[3]))
 
-        sigma3 = (self.l3 * np.sin(self.theta[1] + self.theta[2]) - 
-                  self.l5 * np.cos(self.theta[1] + self.theta[2] + self.theta[3]) + 
-                  self.l4 * np.sin(self.theta[1] + self.theta[2] + self.theta[3]))
+        sigma3 = (self.l3 * np.sin(self.theta[1] - self.theta[2]) - 
+                  self.l5 * np.cos(self.theta[1] - self.theta[2] + self.theta[3]) + 
+                  self.l4 * np.sin(self.theta[1] - self.theta[2] + self.theta[3]))
 
-        sigma4 = self.l5 * np.sin(self.theta[1] + self.theta[2] + self.theta[3])
-        sigma5 = self.l4 * np.cos(self.theta[1] + self.theta[2] + self.theta[3])
-        sigma6 = self.l4 * np.sin(self.theta[1] + self.theta[2] + self.theta[3])
-        sigma7 = self.l5 * np.cos(self.theta[1] + self.theta[2] + self.theta[3])
+        sigma4 = self.l5 * np.sin(self.theta[1] - self.theta[2] + self.theta[3])
+        sigma5 = self.l4 * np.cos(self.theta[1] - self.theta[2] + self.theta[3])
+        sigma6 = self.l4 * np.sin(self.theta[1] - self.theta[2] + self.theta[3])
+        sigma7 = self.l5 * np.cos(self.theta[1] - self.theta[2] + self.theta[3])
 
         J_v = np.array([
-            [-np.sin(self.theta[0]) * sigma1, -np.cos(self.theta[0]) * sigma2, -np.cos(self.theta[0]) * sigma3, np.cos(self.theta[0]) * (sigma7 - sigma6), 0],
-            [ np.cos(self.theta[0]) * sigma1, -np.sin(self.theta[0]) * sigma2, -np.sin(self.theta[0]) * sigma3, np.sin(self.theta[0]) * (sigma7 - sigma6), 0],
-            [ 0,                             sigma1,                         self.l3 * np.cos(self.theta[1] + self.theta[2]) + sigma5 + sigma4, sigma5 + sigma4, 0]
+            [-np.sin(self.theta[0]) * sigma1, -np.cos(self.theta[0]) * sigma2, np.cos(self.theta[0]) * sigma3, np.cos(self.theta[0]) * (sigma7 - sigma6), 0],
+            [ np.cos(self.theta[0]) * sigma1, -np.sin(self.theta[0]) * sigma2, np.sin(self.theta[0]) * sigma3, np.sin(self.theta[0]) * (sigma7 - sigma6), 0],
+            [ 0,                             sigma1,                         -self.l3 * np.cos(self.theta[1] - self.theta[2]) - sigma5 - sigma4, sigma5 + sigma4, 0]
         ])
 
         return J_v
