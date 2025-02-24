@@ -521,6 +521,12 @@ class FiveDOFRobot:
         """Initialize the robot parameters and joint limits."""
         # Link lengths
         self.l1, self.l2, self.l3, self.l4, self.l5 = 0.30, 0.15, 0.18, 0.15, 0.12
+
+        self.l1 = 0.159
+        self.l2 = 0.1
+        self.l3 = 0.095
+        self.l4 = 0.05
+        self.l5 = 0.08
         
         # Joint angles (initialized to zero)
         self.theta = [0, 0, 0, 0, 0]
@@ -546,19 +552,23 @@ class FiveDOFRobot:
         self.T = np.zeros((self.num_dof, 4, 4))
         
         # Initialize DH parameters [theta, alpha, a, d]
-        self.DH = np.array([
-            [self.theta[0], np.pi/2, 0, self.l1],
-            [self.theta[1], 0, self.l2, 0],
-            [-self.theta[2], 0, self.l3, 0],
-            [self.theta[3], np.pi/2, self.l4, 0],
-            [self.theta[4], 0, 0, self.l5]
-        ])
+        self.calc_DH()
 
         # Initialize transformation matrices to identity
         self.T = np.array([np.eye(4) for _ in range(self.num_dof)])
         
         # Calculate initial robot configuration
         self.calc_robot_points()
+
+    def calc_DH(self):
+        self.DH = np.array([
+        [self.theta[0], np.pi/2, 0, self.l1],
+        [self.theta[1]+np.pi/2, 0, self.l2, 0],
+        [-self.theta[2], 0, self.l3, 0],
+        [self.theta[3], np.pi/2, self.l4, 0],
+        [0, self.theta[4], self.l5, 0]
+        ])
+
 
     
     def calc_forward_kinematics(self, theta: list, radians=False):
@@ -581,13 +591,7 @@ class FiveDOFRobot:
 
         # Calculate transformation matrices for each joint
 
-        self.DH = np.array([
-            [self.theta[0], np.pi/2, 0, self.l1],
-            [self.theta[1], 0, self.l2, 0],
-            [-self.theta[2], 0, self.l3, 0],
-            [self.theta[3], np.pi/2, self.l4, 0],
-            [self.theta[4], 0, 0, self.l5]
-        ])
+        self.calc_DH()
 
         for i in range(self.num_dof):
             ct = np.cos(self.DH[i,0])
@@ -633,33 +637,44 @@ class FiveDOFRobot:
         ########################################
         self.calc_forward_kinematics(self.theta, radians=True)
 
+    # def compute_Jacobian(self):
+
+
+
+
+
+        
+       
+
+    #     return J_v
+
+
     def compute_Jacobian(self):
-        sigma1 = (self.l3 * np.cos(self.theta[1] - self.theta[2]) + 
-                  self.l2 * np.cos(self.theta[1]) + 
-                  self.l4 * np.cos(self.theta[1] - self.theta[2] + self.theta[3]) + 
-                  self.l5 * np.sin(self.theta[1] - self.theta[2] + self.theta[3]))
 
-        sigma2 = (self.l3 * np.sin(self.theta[1] - self.theta[2]) + 
-                  self.l2 * np.sin(self.theta[1]) - 
-                  self.l5 * np.cos(self.theta[1] - self.theta[2] + self.theta[3]) + 
-                  self.l4 * np.sin(self.theta[1] - self.theta[2] + self.theta[3]))
-
-        sigma3 = (self.l3 * np.sin(self.theta[1] - self.theta[2]) - 
-                  self.l5 * np.cos(self.theta[1] - self.theta[2] + self.theta[3]) + 
-                  self.l4 * np.sin(self.theta[1] - self.theta[2] + self.theta[3]))
-
-        sigma4 = self.l5 * np.sin(self.theta[1] - self.theta[2] + self.theta[3])
-        sigma5 = self.l4 * np.cos(self.theta[1] - self.theta[2] + self.theta[3])
-        sigma6 = self.l4 * np.sin(self.theta[1] - self.theta[2] + self.theta[3])
-        sigma7 = self.l5 * np.cos(self.theta[1] - self.theta[2] + self.theta[3])
-
+        sigma1 = np.cos(self.theta[0] - self.theta[1] + self.theta[2] - self.theta[3])
+        sigma2 = np.cos(self.theta[0] + self.theta[1] - self.theta[2] + self.theta[3])
+        sigma6 = np.sin(self.theta[1] - self.theta[2] + self.theta[3])
+        sigma8 = np.cos(self.theta[1] - self.theta[2] + self.theta[3])
+        sigma7 = self.l3 * np.cos(self.theta[1] - self.theta[2])
+        sigma5 = self.l3 * np.sin(self.theta[1] - self.theta[2])
+        sigma3 = self.l4 * sigma6 + self.l5 * sigma6 + self.l2 * np.sin(self.theta[1]) + sigma5
+        sigma4 = self.l4 * sigma8 + self.l5 * sigma8 + self.l2 * np.cos(self.theta[1]) + sigma7
+        
         J_v = np.array([
-            [-np.sin(self.theta[0]) * sigma1, -np.cos(self.theta[0]) * sigma2, np.cos(self.theta[0]) * sigma3, np.cos(self.theta[0]) * (sigma7 - sigma6), 0],
-            [ np.cos(self.theta[0]) * sigma1, -np.sin(self.theta[0]) * sigma2, np.sin(self.theta[0]) * sigma3, np.sin(self.theta[0]) * (sigma7 - sigma6), 0],
-            [ 0,                             sigma1,                         -self.l3 * np.cos(self.theta[1] - self.theta[2]) - sigma5 - sigma4, sigma5 + sigma4, 0]
+            [np.sin(self.theta[0]) * sigma3, -np.cos(self.theta[0]) * sigma4, 
+            (self.l4 * sigma1 / 2) + (self.l5 * sigma1 / 2) + (self.l3 * np.cos(self.theta[0] + self.theta[1] - self.theta[2]) / 2) + 
+            (self.l3 * np.cos(self.theta[0] - self.theta[1] + self.theta[2]) / 2) + (self.l4 * sigma2 / 2) + (self.l5 * sigma2 / 2),
+            -((self.l4 + self.l5) * (sigma1 + sigma2) / 2), 0],
+            [-np.cos(self.theta[0]) * sigma3, -np.sin(self.theta[0]) * sigma4, 
+            np.sin(self.theta[0]) * (self.l4 * sigma8 + self.l5 * sigma8 + sigma7),
+            -((self.l4 + self.l5) * (np.sin(self.theta[0] + self.theta[1] - self.theta[2] + self.theta[3]) + np.sin(self.theta[0] - self.theta[1] + self.theta[2] - self.theta[3])) / 2), 0],
+            [0, -self.l4 * sigma6 - self.l5 * sigma6 - self.l2 * np.sin(self.theta[1]) - sigma5, self.l4 * sigma6 + self.l5 * sigma6 + sigma5, -sigma6 * (self.l4 + self.l5), 0]
         ])
 
+        # print(J_v)
+
         return J_v
+
 
 
     def calc_velocity_kinematics(self, vel: list):
