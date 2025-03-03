@@ -247,13 +247,16 @@ class TwoDOFRobot():
             theta (list): Joint angles.
             radians (bool, optional): Whether the angles are in radians or degrees. Defaults to False.
         """
-        
-        ########################################
+        if not radians:
+            # Convert degrees to radians if the input is in degrees
+            self.theta[0] = np.deg2rad(theta[0])
+            self.theta[1] = np.deg2rad(theta[1])
+        else:
+            self.theta = theta
 
-        # insert your code here
-
-        ########################################
-
+        # Ensure that the joint angles respect the joint limits
+        for i, th in enumerate(self.theta):
+            self.theta[i] = np.clip(th, self.theta_limits[i][0], self.theta_limits[i][1])
 
         # Update the robot configuration (i.e., the positions of the joints and end effector)
         self.calc_robot_points()
@@ -268,12 +271,24 @@ class TwoDOFRobot():
             soln (int, optional): The solution branch to use. Defaults to 0 (first solution).
         """
         x, y = EE.x, EE.y
+        
         l1, l2 = self.l1, self.l2
 
         ########################################
 
-        # insert your code here
+        L = (x**2 + y**2)**0.5
+        alpha = np.arctan2(y, x)
+        beta = np.arccos((l1**2 + l2**2 - L**2)/(2*l1*l2))
 
+        self.theta[1] = np.pi - beta
+
+
+        phi = np.arctan2(l1*np.sin(self.theta[1]), l1+l2*np.cos(self.theta[1]))
+        
+        
+        
+        self.theta[0] = alpha - phi
+        print(self.theta)
         ########################################
         
         # Calculate robot points based on the updated joint angles
@@ -326,29 +341,13 @@ class TwoDOFRobot():
 
         Updates the `points` list, storing the coordinates of the base, shoulder, elbow, and end effector.
         """
-
-        
-
-        ########################################
-
-        # Replace the placeholder values with your code
-
-
-        placeholder_value = [0.0, 0.0, 0.0]
-
-
         # Base position
-        self.points[0] = placeholder_value
+        self.points[0] = [0.0, 0.0, 0.0]
         # Shoulder joint
-        self.points[1] = placeholder_value
+        self.points[1] = [self.l1 * cos(self.theta[0]), self.l1 * sin(self.theta[0]), 0.0]
         # Elbow joint
-        self.points[2] = placeholder_value
-
-        ########################################
-
-
-
-
+        self.points[2] = [self.l1 * cos(self.theta[0]) + self.l2 * cos(self.theta[0] + self.theta[1]),
+                          self.l1 * sin(self.theta[0]) + self.l2 * sin(self.theta[0] + self.theta[1]), 0.0]
 
         # Update end effector position
         self.ee.x = self.points[2][0]
@@ -361,7 +360,6 @@ class TwoDOFRobot():
         self.EE_axes[0] = np.array([cos(self.theta[0] + self.theta[1]), sin(self.theta[0] + self.theta[1]), 0]) * 0.075 + self.points[2]
         self.EE_axes[1] = np.array([-sin(self.theta[0] + self.theta[1]), cos(self.theta[0] + self.theta[1]), 0]) * 0.075 + self.points[2]
         self.EE_axes[2] = np.array([0, 0, 1]) * 0.075 + self.points[2]
-
 
 
 class ScaraRobot():
