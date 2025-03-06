@@ -279,16 +279,17 @@ class TwoDOFRobot():
         L = (x**2 + y**2)**0.5
         alpha = np.arctan2(y, x)
         beta = np.arccos((l1**2 + l2**2 - L**2)/(2*l1*l2))
-
-        self.theta[1] = np.pi - beta
-
-
-        phi = np.arctan2(l1*np.sin(self.theta[1]), l1+l2*np.cos(self.theta[1]))
         
-        
-        
-        self.theta[0] = alpha - phi
-        print(self.theta)
+        if soln==0:
+            self.theta[1] = np.pi - beta
+            phi = np.arctan2(l2*np.sin(self.theta[1]), l1+l2*np.cos(self.theta[1]))
+            self.theta[0] = alpha - phi
+            print(self.theta)
+        else:
+            self.theta[1] = -(np.pi - beta)
+            phi = np.arctan2(l2*np.sin(self.theta[1]), l1+l2*np.cos(self.theta[1]))
+            self.theta[0] = alpha - phi
+            print(self.theta)
         ########################################
         
         # Calculate robot points based on the updated joint angles
