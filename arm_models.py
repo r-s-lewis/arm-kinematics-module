@@ -318,7 +318,7 @@ class TwoDOFRobot():
         ])
 
 
-    def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
+    def calc_numerical_ik(self, EE: EndEffector, tol=0.001, ilimit=500):
         """
         Calculates numerical inverse kinematics (IK) based on input end effector coordinates.
 
@@ -328,21 +328,30 @@ class TwoDOFRobot():
             ilimit (int, optional): The maximum number of iterations. Defaults to 50.
         """
         x, y = EE.x, EE.y
+
         error = 100000
         guess = [45, 45]
         
         ########################################
 
-        for i in range(10):
+        for i in range(ilimit):
+            test_pos = [self.l1 * cos(guess[0]) + self.l2 * cos(guess[0] + guess[1]),
+                          self.l1 * sin(guess[0]) + self.l2 * sin(guess[0] + guess[1])]
+            
+            print(test_pos)
+            print(x, y)
+            error = [(x-test_pos[0]), (y-test_pos[1])]
+            print(error)
 
-            error = guess - self.calc_forward_kinematics(guess, radians=False)
-
-
-            if abs(error) < tol:
+            if np.linalg.norm(error) < tol:
                 break
             
             J = self.jacobian(guess)
-            guess = guess + np.pinv(J) * error
+            print(J)
+            Ji = np.linalg.pinv(J)
+            print(Ji)
+            guess = guess + Ji@error
+            print(guess)
 
         self.theta = guess
         
