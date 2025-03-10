@@ -296,6 +296,28 @@ class TwoDOFRobot():
         self.calc_robot_points()
 
 
+
+    def jacobian(self, theta):
+        """
+        Returns the Jacobian matrix for the robot. If theta is not provided, 
+        the function will use the object's internal theta attribute.
+
+        Args:
+            theta (list, optional): The joint angles for the robot. Defaults to self.theta.
+
+        Returns:
+            np.ndarray: The Jacobian matrix (2x2).
+        """
+        # Use default values if arguments are not provided
+        # if theta is None:
+        #     theta = self.theta
+        
+        return np.array([
+            [-self.l1 * sin(theta[0]) - self.l2 * sin(theta[0] + theta[1]), -self.l2 * sin(theta[0] + theta[1])],
+            [self.l1 * cos(theta[0]) + self.l2 * cos(theta[0] + theta[1]), self.l2 * cos(theta[0] + theta[1])]
+        ])
+
+
     def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
         """
         Calculates numerical inverse kinematics (IK) based on input end effector coordinates.
@@ -306,10 +328,24 @@ class TwoDOFRobot():
             ilimit (int, optional): The maximum number of iterations. Defaults to 50.
         """
         x, y = EE.x, EE.y
+        error = 100000
+        guess = [45, 45]
         
         ########################################
 
-        # insert your code here
+        for i in range(10):
+
+            error = guess - self.calc_forward_kinematics(guess, radians=False)
+
+
+            if abs(error) < tol:
+                break
+            
+            J = self.jacobian(guess)
+            guess = guess + np.pinv(J) * error
+
+        self.theta = guess
+        
 
         ########################################
 
