@@ -1,7 +1,7 @@
 from math import sin, cos
 import numpy as np
 from matplotlib.figure import Figure
-from helper_fcns.utils import EndEffector, rotm_to_euler
+from helper_fcns.utils import EndEffector, rotm_to_euler, euler_to_rotm
 
 PI = 3.1415926535897932384
 np.set_printoptions(precision=3)
@@ -436,7 +436,7 @@ class ScaraRobot():
             [-np.pi + 0.261, np.pi - 0.261],
             [0, self.l1 + self.l3 - self.l5]
         ]
-
+ 
         # End-effector (EE) object to store EE position and orientation
         self.ee = EndEffector()
 
@@ -665,8 +665,64 @@ class FiveDOFRobot:
             soln: Optional parameter for multiple solutions (not implemented).
         """
         ########################################
+        
+        # translate to wrist pos
+        # T_cumulative = [np.eye(4)]
+        # for i in range(self.num_dof):
+        #     T_cumulative.append(T_cumulative[-1] @ self.T[i])
 
-        # insert your code here
+        H_ee = np.eye(4)
+
+        R = euler_to_rotm((EE.rotx, EE.roty, EE.rotz))
+        H_ee[0:3, 0:3] = R
+        H_ee[0:3, 3] = [EE.x, EE.y, EE.z]
+
+
+        wrist = np.array([[EE.x], [EE.y], [EE.z]]) - np.transpose(R) @ np.array([[0], [0], [self.l5+self.l4]])
+
+        print(wrist)
+
+        self.calc_robot_points
+        print(self.points[3])
+
+    
+
+
+        # convert to cylindrical coordiantes
+        
+        # l1, l2, l3 = self.l1, self.l2, self.l3
+
+        # r = np.sqrt(wrist[0]**2 + wrist[1]**2)
+        # z = wrist[3] - l1
+
+
+        # self.theta[0] = np.arctan2(wrist[1], wrist[0])
+    
+        # print(r)
+        # print(z)
+
+        
+        # ########################################
+
+        # L = (r**2 + z**2)**0.5
+        # alpha = np.arctan2(z, r)
+        # beta = np.arccos((l2**2 + l3**2 - L**2)/(2*l2*l3))
+        
+        # if soln==0:
+        #     self.theta[2] = np.pi - beta
+        #     phi = np.arctan2(l3*np.sin(self.theta[2]), l2+l3*np.cos(self.theta[2]))
+        #     self.theta[1] = alpha - phi
+        #     print(self.theta)
+        # else:
+        #     self.theta[2] = -(np.pi - beta)
+        #     phi = np.arctan2(l3*np.sin(self.theta[2]), l2+l3*np.cos(self.theta[2]))
+        #     self.theta[1] = alpha - phi
+        #     print(self.theta)
+
+
+
+        
+
 
         ########################################
 
