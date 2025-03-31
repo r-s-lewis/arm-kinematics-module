@@ -614,9 +614,9 @@ class FiveDOFRobot:
         else:
             self.theta = theta
         
-        # Apply joint limits
-        self.theta = [np.clip(th, self.theta_limits[i][0], self.theta_limits[i][1]) 
-                      for i, th in enumerate(self.theta)]
+        # # Apply joint limits
+        # self.theta = [np.clip(th, self.theta_limits[i][0], self.theta_limits[i][1]) 
+        #               for i, th in enumerate(self.theta)]
 
         # Set the Denavit-Hartenberg parameters for each joint
         self.DH[0] = [self.theta[0], self.l1, 0, np.pi/2]
@@ -650,12 +650,12 @@ class FiveDOFRobot:
       
 
         #find wrist position
-        R_5_to_0 = euler_to_rotm((EE.rotx, EE.roty, EE.rotz))
+        R_0_to_5 = euler_to_rotm((EE.rotx, EE.roty, EE.rotz))
         H_ee = np.eye(4)
-        H_ee[0:3, 0:3] = R_5_to_0
+        H_ee[0:3, 0:3] = R_0_to_5
         H_ee[0:3, 3] = [EE.x, EE.y, EE.z]
         print("H_ee: ", H_ee)
-        wrist = np.array([[EE.x], [EE.y], [EE.z]]) - ((self.l5+self.l4) * (R_5_to_0 @ np.array([[0], [0], [1]])))
+        wrist = np.array([[EE.x], [EE.y], [EE.z]]) - ((self.l5+self.l4) * (R_0_to_5 @ np.array([[0], [0], [1]])))
 
         # convert to cylindrical coordiantes
         l1, l2, l3 = self.l1, self.l2, self.l3
@@ -667,7 +667,8 @@ class FiveDOFRobot:
         #solve 2DOF arm
         self.theta[0] = np.arctan2(wrist[1], wrist[0])[0]
         self.theta[1], self.theta[2] = self.twoDOF_ik(r[0], z[0], l2, l3, soln)
-        self.theta[1]  = np.pi/2 - self.theta[1]
+        self.theta[1]  = -(np.pi/2 - self.theta[1])
+        self.theta[2] = -1*self.theta[2]
 
 
         #solve wrist orientation
@@ -675,35 +676,69 @@ class FiveDOFRobot:
         self.DH[1] = [self.theta[1] + np.pi/2, 0, self.l2, np.pi]
         self.DH[2] = [self.theta[2], 0, self.l3, np.pi] 
 
-        H_3_to_0 = np.eye(4)
+        H_0_to_3 = np.eye(4)
 
         for i in range(3):
             T = dh_to_matrix(self.DH[i])
             print("T: ", T)
-            H_3_to_0 = H_3_to_0 @ T
-        print("H30: ", H_3_to_0)
+            H_0_to_3 = H_0_to_3 @ T
+
+        H_0_to_3 = H_0_to_3.T
+        
+        
+        print("H30: ", H_0_to_3)
 
         
 
 
-        R_3_to_0 = H_3_to_0[0:3, 0:3]
-        R_5_to_3 = R_3_to_0 @ R_5_to_0
-        
-        print("5 to 3,", R_5_to_3)
-        r, p, y = rotm_to_euler(R_5_to_3)
-        print(r, p, y)
-        print(np.pi/2 + p)
+        R_0_to_3 = H_0_to_3[0:3, 0:3]
 
-        if soln ==0:
-            self.theta[3] = (np.pi/2 + p)
-            self.theta[4] = np.pi/2 - r
+        print("0 to 5:", R_0_to_5)
+        print("0 to 3:", R_0_to_3)
+        R_3_to_5 = R_0_to_3.T @ R_0_to_5
+
+
+        
+        print("3 to 5:", R_3_to_5)
+        
+
+        print("theta 3: ",  np.arcsin(-R_3_to_5[2, 0]))
+        print("theta 4: ", np.arctan2(R_3_to_5[1, 2], R_3_to_5[0, 2]))
+
+
+
+        if soln==0:
+            self.theta[3] = -(np.pi/2 + np.arcsin(-R_3_to_5[2, 0]))
         else:
-            self.theta[3] = np.pi/2 - p - np.pi
-            self.theta[4] = r + np.pi/2
+            self.theta[3] = (np.pi/2 + np.arcsin(-R_3_to_5[2, 0]))
+
+        # self.theta[4] = np.arctan2(R_3_to_5[1, 2], R_3_to_5[0, 2])
+        self.theta[4] = 0
+
+
+        # y, p, r = rotm_to_euler(R_3_to_5)
+        # print(r, p, y)
+        # print(r*180/3.1415, p*180/3.1415, y*180/3.1415)
+        # print(np.pi/2 + p)
+
+        # self.theta[4] = -(np.pi - (EE.rotz - r))
+
+        # print(np.pi - (EE.rotz - r))
+
+        # self.theta[3] = (np.pi/2 + p)
+
+        # if soln ==0:
+            # self.theta[3] = (np.pi/2 + p)
+            # self.theta[4] = np.pi/2 - r
+        # else:
+            # self.theta[3] = np.pi/2 - p - np.pi
+            # self.theta[4] = r + np.pi/2
 
 
         
-        # self.theta[3] = np.arctan2(np.sqrt(R_63[0, 2]**2 + R_63[1, 2]**2), R_63[2, 2])  # Pitch (θ4)
+        # self.theta[3] = np.arctan2(-R_5_to_3[2, 0], R_5_to_3[2, 2])
+
+        # print(np.arctan2(-R_5_to_3[2, 0], R_5_to_3[2, 2]))
 
 
 
@@ -711,12 +746,12 @@ class FiveDOFRobot:
         # self.theta[3] = np.pi/2 + y
 
 
-        print(self.theta)
+        # print(self.theta)
         self.calc_forward_kinematics(self.theta, radians=True)
 
 
 
-        print(self.points)
+        # print(self.points)
 
         
 
