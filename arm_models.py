@@ -683,7 +683,7 @@ class FiveDOFRobot:
             print("T: ", T)
             H_0_to_3 = H_0_to_3 @ T
 
-        H_0_to_3 = H_0_to_3.T
+        # H_0_to_3 = H_0_to_3.T
         
         
         print("H30: ", H_0_to_3)
@@ -702,18 +702,32 @@ class FiveDOFRobot:
         print("3 to 5:", R_3_to_5)
         
 
-        print("theta 3: ",  np.arcsin(-R_3_to_5[2, 0]))
-        print("theta 4: ", np.arctan2(R_3_to_5[1, 2], R_3_to_5[0, 2]))
-
-
+        print("theta 3: ", np.arctan2(R_3_to_5[1,2], R_3_to_5[0,2]))
+        print("theta 4: ", np.arctan2(-R_3_to_5[2,0], -R_3_to_5[2,1]))
 
         if soln==0:
-            self.theta[3] = -(np.pi/2 + np.arcsin(-R_3_to_5[2, 0]))
+            self.theta[3] = np.arctan2(R_3_to_5[1,2], R_3_to_5[0,2])
         else:
-            self.theta[3] = (np.pi/2 + np.arcsin(-R_3_to_5[2, 0]))
+            self.theta[3] = (np.arctan2(R_3_to_5[1,2], R_3_to_5[0,2]))
+
+        self.theta[4] =  np.arctan2(-R_3_to_5[2,0], -R_3_to_5[2,1])
+
+        # print("theta 3: ",  np.arcsin(-R_3_to_5[2, 0]))
+        # print("theta 4: ", np.arctan2(R_3_to_5[1, 2], R_3_to_5[0, 2]))
+
+        # print("theta 3: ", np.arcsin(-R_3_to_5[0, 2]))
+        # print("theta 4: ", np.arcsin(-R_3_to_5[2,0]) + np.pi/2)
+
+        # self.theta[4] = np.arcsin(-R_3_to_5[0, 2])
+        
+
+        # if soln==0:
+        #     self.theta[3] = np.arcsin(-R_3_to_5[2,0]) + np.pi/2
+        # else:
+        #     self.theta[3] = -(np.arcsin(-R_3_to_5[2,0]) + np.pi/2)
 
         # self.theta[4] = np.arctan2(R_3_to_5[1, 2], R_3_to_5[0, 2])
-        self.theta[4] = 0
+        # self.theta[4] = np.arctan2(R_3_to_5[1, 2], R_3_to_5[0, 2]) + np.pi/2
 
 
         # y, p, r = rotm_to_euler(R_3_to_5)
