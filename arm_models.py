@@ -804,12 +804,37 @@ class FiveDOFRobot:
 
     def calc_numerical_ik(self, EE: EndEffector, tol=0.01, ilimit=50):
         """ Calculate numerical inverse kinematics based on input coordinates. """
-        
-        ########################################
 
-        # insert your code here
+        xd = np.array([EE.x, EE.y, EE.z, EE.rotx, EE.roty, EE.rotz])  # Target pose
+        theta = self.theta.copy()
 
-        ########################################
+        for i in range(ilimit):
+            # forward kinematics and current EE pose
+            self.calc_forward_kinematics(theta, radians=True)
+            current = np.array([
+                self.ee.x, self.ee.y, self.ee.z,
+                self.ee.rotx, self.ee.roty, self.ee.rotz
+            ])
+
+            err = xd - current
+
+            # wrap angular errors to -pi and pi
+            err[3:] = [wraptopi(a) for a in err[3:]]
+
+            # Check convergence
+            if np.linalg.norm(err) < tol:
+                break
+
+            # compute delta theta using damped least squares
+            J_inv = self.damped_inverse_jacobian(theta)
+            dtheta = J_inv @ err[:3]  # Use only position part
+
+            # update and clip
+            theta += dtheta
+            for j in range(len(theta)):
+                theta[j] = np.clip(theta[j], self.theta_limits[j][0], self.theta_limits[j][1])
+
+        self.theta = theta.copy()
         self.calc_forward_kinematics(self.theta, radians=True)
 
     # def compute_Jacobian(self):
