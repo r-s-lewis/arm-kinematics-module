@@ -645,7 +645,7 @@ class FiveDOFRobot:
         ########################################
     
         self.theta = [0,0,0,0,0]
-        self.calc_forward_kinematics
+        self.calc_forward_kinematics(self.theta, radians=True)
 
       
 
@@ -669,6 +669,9 @@ class FiveDOFRobot:
         self.theta[1], self.theta[2] = self.twoDOF_ik(r[0], z[0], l2, l3, soln)
         self.theta[1]  = -(np.pi/2 - self.theta[1])
         self.theta[2] = -1*self.theta[2]
+
+        for i in range(len(self.theta)):
+            self.theta[i] = np.clip(self.theta[i], self.theta_limits[i][0], self.theta_limits[i][1])
 
 
         #solve wrist orientation
@@ -711,6 +714,7 @@ class FiveDOFRobot:
             self.theta[3] = (np.arctan2(R_3_to_5[1,2], R_3_to_5[0,2]))
 
         self.theta[4] =  np.arctan2(-R_3_to_5[2,0], -R_3_to_5[2,1])
+
 
         # print("theta 3: ",  np.arcsin(-R_3_to_5[2, 0]))
         # print("theta 4: ", np.arctan2(R_3_to_5[1, 2], R_3_to_5[0, 2]))
@@ -781,7 +785,11 @@ class FiveDOFRobot:
 
         L = (x**2 + y**2)**0.5
         alpha = np.arctan2(y, x)
-        beta = np.arccos((l1**2 + l2**2 - L**2)/(2*l1*l2))
+        #beta = np.arccos((l1**2 + l2**2 - L**2)/(2*l1*l2))
+        cos_angle = (l1**2 + l2**2 - L**2)/(2*l1*l2)
+        cos_angle = np.clip(cos_angle, -1.0, 1.0)  # Avoid NaNs due to rounding errors
+        beta = np.arccos(cos_angle)
+
         
         if soln==0:
             theta[1] = np.pi - beta
