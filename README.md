@@ -93,3 +93,7 @@ $ python main_arm.py --robot_type scara
 
 For instance, I used ChatGPT in generating the docstrings for the functions in this repository.
 
+## IK Results
+<img src = "media/viz_tool_doc.png">
+
+The screenshot above shows both the analytical and numerical IK solvers successfully computing joint angles for the same end-effector pose using the visualization tool. The arm reaches the target position and orientation in both cases, confirming that the two methods produce consistent and valid solutions. The analytical solver provides exact, deterministic results based on the derived equations, while the numerical solver iteratively converges to a solution given an initial guess.
